@@ -1,65 +1,190 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import SearchBar from "@/src/components/SearchBar";
+import ResultCard, { SearchResult } from "@/src/components/ResultCard";
+import FilterPanel, { Filters } from "@/src/components/FilterPanel";
+import SafeguardBadge from "@/src/components/SafeguardBadge";
+import { Compass, AlertCircle, PackageSearch } from "lucide-react";
+
+const DEFAULT_FILTERS: Filters = { maxPrice: 300, selectedTags: [] };
 
 export default function Home() {
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [noMatchReason, setNoMatchReason] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+
+  const handleSearch = useCallback(async (query: string) => {
+    setIsLoading(true);
+    setError(null);
+    setNoMatchReason(null);
+    setHasSearched(true);
+
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Request failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      setResults(data.results ?? []);
+      setNoMatchReason(data.noMatchReason ?? null);
+      setFilters(DEFAULT_FILTERS);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const filteredResults = useMemo(() => {
+    return results.filter((r) => {
+      const priceOk = r.price <= filters.maxPrice;
+      const tagsOk =
+        filters.selectedTags.length === 0 ||
+        filters.selectedTags.every((t) => r.tags.includes(t));
+      return priceOk && tagsOk;
+    });
+  }, [results, filters]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main style={{ minHeight: "100vh" }}>
+      {/* HERO SECTION */}
+      <motion.header
+        initial={{ opacity: 0, y: -40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        style={{ textAlign: "center", padding: "4rem 1rem" }}
+      >
+        <div style={{ display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
+          <Compass size={36} />
+          <h2>Smart Travel Scout</h2>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <h1 style={{ fontSize: "2.8rem", marginTop: "1rem" }}>
+          Find your perfect <br />
+          <span style={{ color: "#38bdf8" }}>Sri Lanka experience</span>
+        </h1>
+
+        <p style={{ marginTop: "1rem", opacity: 0.7 }}>
+          Describe what you are looking for and our AI will scout the best
+          matching experiences.
+        </p>
+
+        <div style={{ marginTop: "1rem" }}>
+          <SafeguardBadge />
         </div>
-      </main>
-    </div>
+      </motion.header>
+
+      {/* SEARCH */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        style={{ padding: "1rem", textAlign: "center" }}
+      >
+        <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+      </motion.section>
+
+      {/* RESULTS */}
+      <AnimatePresence>
+        {(hasSearched || results.length > 0) && (
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{ padding: "2rem" }}
+          >
+            {isLoading && <p style={{ textAlign: "center" }}>Searching experiences...</p>}
+
+            {!isLoading && error && (
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                style={{ textAlign: "center", color: "tomato" }}
+              >
+                <AlertCircle size={32} />
+                <p>{error}</p>
+              </motion.div>
+            )}
+
+            {!isLoading && filteredResults.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{ textAlign: "center" }}
+              >
+                <PackageSearch size={48} />
+                <h2>No matching experiences found</h2>
+                <p>
+                  {noMatchReason ??
+                    "Try a different query — for example, 'beach, surfing, under $100'."}
+                </p>
+              </motion.div>
+            )}
+
+            {!isLoading && filteredResults.length > 0 && (
+              <>
+                <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+                  {filteredResults.length} experience
+                  {filteredResults.length !== 1 ? "s" : ""} matched
+                </h2>
+
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    visible: {
+                      transition: { staggerChildren: 0.15 },
+                    },
+                  }}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                    gap: "1.5rem",
+                  }}
+                >
+                  {filteredResults.map((result, i) => (
+                    <motion.div
+                      key={result.id}
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 },
+                      }}
+                      whileHover={{ scale: 1.03 }}
+                      transition={{ duration: 0.4 }}
+                    >
+                      <ResultCard result={result} index={i} />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </>
+            )}
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* FOOTER */}
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+        style={{ textAlign: "center", padding: "2rem", opacity: 0.6 }}
+      >
+        Powered by Gemini · Grounded to 5 curated experiences
+      </motion.footer>
+    </main>
   );
 }
