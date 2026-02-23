@@ -1,7 +1,7 @@
 "use client";
 
 import { SlidersHorizontal, X } from "lucide-react";
-import { INVENTORY } from "@/data/inventory";
+import { INVENTORY } from "@/src/data/inventory";
 
 // Collect all unique tags from inventory
 const ALL_TAGS = Array.from(

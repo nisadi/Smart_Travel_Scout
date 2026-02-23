@@ -26,7 +26,7 @@ export default function RootLayout({
       <body
         style={{
           fontFamily: "Inter, sans-serif",
-          background: "#0f172a",
+          background: "#0b1239",
           color: "#f8fafc",
         }}
       >

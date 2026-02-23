@@ -59,40 +59,44 @@ export default function Home() {
   }, [results, filters]);
 
   return (
-    <main style={{ minHeight: "100vh" }}>
-      {/* HERO SECTION */}
+    <main className="main">
+      {/* HERO */}
       <motion.header
+        className="hero"
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        style={{ textAlign: "center", padding: "4rem 1rem" }}
+        transition={{ duration: 0.7 }}
       >
-        <div style={{ display: "flex", justifyContent: "center", gap: "10px", alignItems: "center" }}>
-          <Compass size={36} />
-          <h2>Smart Travel Scout</h2>
-        </div>
+        <div className="hero-glow" />
+        <div className="hero-content">
+          <div className="logo">
+            <Compass size={32} className="logo-icon" />
+            <span className="logo-text">Smart Travel Scout</span>
+          </div>
 
-        <h1 style={{ fontSize: "2.8rem", marginTop: "1rem" }}>
-          Find your perfect <br />
-          <span style={{ color: "#38bdf8" }}>Sri Lanka experience</span>
-        </h1>
+          <h1 className="hero-title">
+            Find your perfect <br />
+            <span className="hero-accent">
+              Sri Lankan Travel Experience
+            </span>
+          </h1>
 
-        <p style={{ marginTop: "1rem", opacity: 0.7 }}>
-          Describe what you are looking for and our AI will scout the best
-          matching experiences.
-        </p>
+          <p className="hero-subtitle">
+            Tell us what your perfect getaway looks like — beach vibes, cultural adventures, wildlife safaris, or mountain escapes.
+            <br />
+            Our AI will intelligently match your request to real, curated Sri Lanka experiences — no made-up destinations, just smart discovery.
+          </p>
 
-        <div style={{ marginTop: "1rem" }}>
           <SafeguardBadge />
         </div>
       </motion.header>
 
       {/* SEARCH */}
       <motion.section
+        className="search-section"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        style={{ padding: "1rem", textAlign: "center" }}
+        transition={{ delay: 0.3 }}
       >
         <SearchBar onSearch={handleSearch} isLoading={isLoading} />
       </motion.section>
@@ -101,90 +105,115 @@ export default function Home() {
       <AnimatePresence>
         {(hasSearched || results.length > 0) && (
           <motion.section
+            className="results-section"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            style={{ padding: "2rem" }}
+            transition={{ duration: 0.4 }}
           >
-            {isLoading && <p style={{ textAlign: "center" }}>Searching experiences...</p>}
+            <div className="results-layout">
+              {results.length > 0 && !isLoading && (
+                <aside className="filters-aside">
+                  <FilterPanel filters={filters} onChange={setFilters} />
+                </aside>
+              )}
 
-            {!isLoading && error && (
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                style={{ textAlign: "center", color: "tomato" }}
-              >
-                <AlertCircle size={32} />
-                <p>{error}</p>
-              </motion.div>
-            )}
+              <div className="results-main">
+                {/* Loading */}
+                {isLoading && (
+                  <div className="loading-grid">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="skeleton-card">
+                        <div className="skeleton-line wide" />
+                        <div className="skeleton-line medium" />
+                        <div className="skeleton-line narrow" />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            {!isLoading && filteredResults.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                style={{ textAlign: "center" }}
-              >
-                <PackageSearch size={48} />
-                <h2>No matching experiences found</h2>
-                <p>
-                  {noMatchReason ??
-                    "Try a different query — for example, 'beach, surfing, under $100'."}
-                </p>
-              </motion.div>
-            )}
+                {/* Error */}
+                {!isLoading && error && (
+                  <motion.div
+                    className="error-state"
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                  >
+                    <AlertCircle size={32} />
+                    <p>{error}</p>
+                  </motion.div>
+                )}
 
-            {!isLoading && filteredResults.length > 0 && (
-              <>
-                <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                  {filteredResults.length} experience
-                  {filteredResults.length !== 1 ? "s" : ""} matched
-                </h2>
+                {/* Empty */}
+                {!isLoading &&
+                  !error &&
+                  hasSearched &&
+                  filteredResults.length === 0 && (
+                    <div className="empty-state">
+                      <PackageSearch size={48} className="empty-icon" />
+                      <h2 className="empty-title">
+                        No matching experiences found
+                      </h2>
+                      <p className="empty-desc">
+                        {noMatchReason ??
+                          (filters.selectedTags.length > 0 ||
+                          filters.maxPrice < 300
+                            ? "Try adjusting your price range or tag filters."
+                            : "Try a different query — for example, \"beach, surfing, under $100\".")}
+                      </p>
+                    </div>
+                  )}
 
-                <motion.div
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    visible: {
-                      transition: { staggerChildren: 0.15 },
-                    },
-                  }}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: "1.5rem",
-                  }}
-                >
-                  {filteredResults.map((result, i) => (
-                    <motion.div
-                      key={result.id}
-                      variants={{
-                        hidden: { opacity: 0, y: 20 },
-                        visible: { opacity: 1, y: 0 },
-                      }}
-                      whileHover={{ scale: 1.03 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      <ResultCard result={result} index={i} />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </>
-            )}
+                {/* Success */}
+                {!isLoading &&
+                  !error &&
+                  filteredResults.length > 0 && (
+                    <>
+                      <div className="results-heading">
+                        <h2 className="results-count">
+                          {filteredResults.length} experience
+                          {filteredResults.length !== 1 ? "s" : ""} matched
+                        </h2>
+                        <span className="results-note">
+                          ranked by AI match score
+                        </span>
+                      </div>
+
+                      <motion.div
+                        className="results-grid"
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                          visible: {
+                            transition: { staggerChildren: 0.12 },
+                          },
+                        }}
+                      >
+                        {filteredResults.map((result, i) => (
+                          <motion.div
+                            key={result.id}
+                            variants={{
+                              hidden: { opacity: 0, y: 20 },
+                              visible: { opacity: 1, y: 0 },
+                            }}
+                            transition={{ duration: 0.35 }}
+                          >
+                            <ResultCard result={result} index={i} />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+              </div>
+            </div>
           </motion.section>
         )}
       </AnimatePresence>
 
       {/* FOOTER */}
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        style={{ textAlign: "center", padding: "2rem", opacity: 0.6 }}
-      >
+      <footer className="footer">
         Powered by Gemini · Grounded to 5 curated experiences
-      </motion.footer>
+      </footer>
     </main>
   );
 }
